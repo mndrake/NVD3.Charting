@@ -4,10 +4,9 @@ open Newtonsoft.Json
 
 type Point = {x: float; y:float}
 type Series = {values: Point seq; key: string; color: string}
-type Axis = {label: string option; format: string option}
 
 let template = """
-<svg id="{GUID}" style='height:{HEIGHT}px;width:{WIDTH}px'></svg>
+<div id="{GUID}" class="container"><svg style='height:{HEIGHT}px;width:{WIDTH}px'></svg></div>
 <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min.css">
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.15/require.min.js"></script>
 <script type="text/javascript">
@@ -16,10 +15,13 @@ let template = """
                 nvd3: "//cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min"}});
     require(["d3", "nvd3"], function(d3, nvd3) {
                 nv.addGraph(function() {
-                    var chart = nv.models.lineChart().useInteractiveGuideline(true);
+                    var chart = nv.models.lineChart()
+                                  .margin({left: 100})
+                                  .transitionDuration(350)
+                                  ;
                     {XAXIS}
                     {YAXIS}
-                    d3.select('#{GUID}')
+                    d3.select('#{GUID} svg')
                             .datum({DATA})
                             .transition().duration(500)
                             .call(chart);
@@ -27,44 +29,85 @@ let template = """
                     return chart;});});
 </script>"""
 
-type NChart = 
-    {
-        guid: string
-        xAxis: Axis option
-        yAxis: Axis option
-        height: int
-        width: int
-        datum: Series seq 
+type Options = { 
+    xLabel : string option
+    xTickFormat : string
+    yLabel : string option
+    yTickFormat : string
+    width : int
+    height : int
+    }
+    with 
+    static member New() = {
+        xLabel = None
+        xTickFormat = "0.1f"
+        yLabel = None
+        yTickFormat = "0.1f"
+        width = 600
+        height = 400
+        }    
+
+type GenericChart = {
+    guid: string
+    datum : Series seq
+    options : Options
     }
 
-    with  
+type NChart =
 
-    static member Line(values: seq<float*float>) = 
-        { guid = "N" + System.Guid.NewGuid().ToString("N")
-          xAxis = Some {label = None; format = Some "0.1f"}
-          yAxis = Some {label = None; format = Some "0.1f"}
-          height = 400
-          width = 600
-          datum = 
-              [{ values = values |> Seq.map (fun p -> {x = fst p; y = snd p }) 
-                 key = "Series 1"
-                 color = "#ff7f0e" }]
-         }
+    static member New() =
+        { guid = String.Format("N{0}", Guid.NewGuid().ToString())
+          datum = Seq.empty
+          options = Options.New()
+          }
 
-    member __.toHtml() =
-        let axisFormat (axis:Axis) name =
-            let label = match axis.label with
-                        | Some v -> String.Format(".axisLabel('{0}'", v)
+    static member Line (values: seq<float*float>) =
+        { NChart.New() with 
+            datum = [{ values = values |> Seq.map (fun p -> {x = fst p; y = snd p }) 
+                       key = "Series 1"
+                       color = "#ff7f0e" }] }
+
+    static member Line (values: Series) =
+        { guid = String.Format("N{0}", Guid.NewGuid().ToString())
+          datum = seq [values]
+          options = Options.New()
+          }
+
+    static member AddSeries (values: Series) (chart: GenericChart) =
+        { chart with datum = Seq.append chart.datum [values] }
+
+    static member toHtml (chart: GenericChart) =
+        let xAxis = 
+            let label = match chart.options.xLabel with
+                        | Some v -> String.Format(".axisLabel('{0}')", v)
                         | None   -> ""
-            let tickFormat = match axis.format with
-                             | Some v -> String.Format(".tickFormat(d3.format('{0}'))", v)
-                             | None   -> ""
-            String.Format("chart.{0}{1}{2}", name, label, tickFormat)
-        let xAxis = match __.xAxis with |None -> "" |Some v -> "xAxis" |> axisFormat v
-        let yAxis = match __.yAxis with |None -> "" |Some v -> "yAxis" |> axisFormat v
-        template.Replace("{GUID}", __.guid)
-            .Replace("{DATA}", (__.datum |> JsonConvert.SerializeObject))
-            .Replace("{WIDTH}", string __.width)
-            .Replace("{HEIGHT}", string __.height)
+            String.Format("chart.xAxis{0}.tickFormat(d3.format('{1}'));", label, chart.options.xTickFormat)
+        let yAxis = 
+            let label = match chart.options.yLabel with
+                        | Some v -> String.Format(".axisLabel('{0}')", v)
+                        | None   -> ""
+            String.Format("chart.yAxis{0}.tickFormat(d3.format('{1}'));", label, chart.options.yTickFormat)
+        template.Replace("{GUID}", chart.guid)
+            .Replace("{DATA}", (chart.datum |> JsonConvert.SerializeObject))
+            .Replace("{WIDTH}", string chart.options.width)
+            .Replace("{HEIGHT}", string chart.options.height)
             .Replace("{XAXIS}", xAxis)
-            .Replace("{YAXIS}", yAxis)
+            .Replace("{YAXIS}", yAxis)        
+
+    static member xLabel value (chart: GenericChart) =
+        { chart with options = { chart.options with xLabel = Some value }}
+
+    static member yLabel value (chart: GenericChart) =
+        { chart with options = { chart.options with yLabel = Some value }}
+
+    static member xTickFormat value (chart: GenericChart) =
+        { chart with options = { chart.options with xTickFormat = value }}
+
+    static member yTickFormat value (chart: GenericChart) =
+        { chart with options = { chart.options with yTickFormat = value }}
+
+    static member height value (chart: GenericChart) =
+        { chart with options = { chart.options with height = value }}
+
+    static member width value (chart: GenericChart) =
+        { chart with options = { chart.options with width = value }}
