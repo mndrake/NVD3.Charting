@@ -1,0 +1,17 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "NVD3.Charting", "NVD3.Charting\NVD3.Charting.fsproj", "{089156A0-A0A2-4A45-909A-F0BF35AD724D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{089156A0-A0A2-4A45-909A-F0BF35AD724D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{089156A0-A0A2-4A45-909A-F0BF35AD724D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{089156A0-A0A2-4A45-909A-F0BF35AD724D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{089156A0-A0A2-4A45-909A-F0BF35AD724D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
